@@ -5,6 +5,7 @@ import * as z from 'zod';
 import yaml from 'js-yaml';
 import { Plus, Trash2, Save, X, Code, FileCode } from 'lucide-react';
 import axios from 'axios';
+import PreviewPanel from './PreviewPanel';
 
 const templateSchema = z.object({
     name: z.string().min(1, 'Template name is required'),
@@ -16,15 +17,33 @@ const templateSchema = z.object({
     })).optional(),
 });
 
-const TemplateEditor = ({ tenant, ciTypes, onSave, onCancel }) => {
+const TemplateEditor = ({
+    tenant,
+    ciTypes,
+    initialData,
+    onSave,
+    onCancel
+}: {
+    tenant: any,
+    ciTypes: any[],
+    initialData?: any,
+    onSave: (data: any) => void,
+    onCancel: () => void
+}) => {
     const [yamlPreview, setYamlPreview] = useState('');
+    const [diff, setDiff] = useState('');
+    const [plan, setPlan] = useState<any>(null);
 
     const { register, control, handleSubmit, watch, formState: { errors } } = useForm({
         resolver: zodResolver(templateSchema),
-        defaultValues: {
+        defaultValues: initialData ? {
+            name: initialData.name,
+            target_type: initialData.spec?.target_type || ciTypes[0]?.name || '',
+            defaults: Object.entries(initialData.spec?.defaults || {}).map(([key, value]) => ({ key, value: String(value) }))
+        } : {
             name: '',
             target_type: ciTypes[0]?.name || '',
-            defaults: []
+            defaults: [] as { key: string, value: string }[]
         }
     });
 
@@ -41,16 +60,50 @@ const TemplateEditor = ({ tenant, ciTypes, onSave, onCancel }) => {
             metadata: { name: formData.name },
             spec: {
                 target_type: formData.target_type,
-                defaults: (formData.defaults || []).reduce((acc, curr) => {
+                defaults: (formData.defaults || []).reduce((acc: any, curr: any) => {
                     acc[curr.key] = curr.value;
                     return acc;
-                }, {})
+                }, {} as any)
             }
         };
-        setYamlPreview(yaml.dump(spec, { sortKeys: true }));
-    }, [formData]);
+        const currentYaml = yaml.dump(spec, { sortKeys: true });
+        setYamlPreview(currentYaml);
 
-    const onSubmit = async (data) => {
+        // Generate Plan
+        const steps: { action: string, resource: string }[] = [];
+        const oldDefaults = initialData?.spec?.defaults || {};
+        const newDefaults = spec.spec.defaults;
+
+        Object.keys(newDefaults).forEach(k => {
+            if (oldDefaults[k] === undefined) steps.push({ action: 'Set Default', resource: k });
+            else if (oldDefaults[k] !== newDefaults[k]) steps.push({ action: 'Update Default', resource: k });
+        });
+        Object.keys(oldDefaults).forEach(k => {
+            if (newDefaults[k] === undefined) steps.push({ action: 'Remove Default', resource: k });
+        });
+
+        setPlan(steps.length > 0 ? { steps } : null);
+
+        // Generate simple Diff
+        if (initialData) {
+            const oldYaml = yaml.dump(initialData, { sortKeys: true });
+            const oldLines = oldYaml.split('\n');
+            const newLines = currentYaml.split('\n');
+            let diffStr = '';
+            newLines.forEach((line: string) => {
+                if (!oldLines.includes(line)) diffStr += `+ ${line}\n`;
+                else diffStr += `  ${line}\n`;
+            });
+            oldLines.forEach((line: string) => {
+                if (!newLines.includes(line)) diffStr += `- ${line}\n`;
+            });
+            setDiff(diffStr);
+        } else {
+            setDiff(currentYaml.split('\n').map((l: string) => `+ ${l}`).join('\n'));
+        }
+    }, [formData, initialData]);
+
+    const onSubmit = async (data: any) => {
         const spec = yaml.load(yamlPreview);
         try {
             const res = await axios.post('/api/pr', {
@@ -68,55 +121,59 @@ const TemplateEditor = ({ tenant, ciTypes, onSave, onCancel }) => {
     };
 
     return (
-        <div className="flex h-full gap-6">
-            <div className="flex-1 overflow-y-auto">
-                <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-                    <div className="space-y-4">
+        <div className="flex h-full animate-in fade-in duration-500 overflow-hidden">
+            <div className="flex-1 overflow-y-auto p-6 border-r border-border">
+                <form onSubmit={handleSubmit(onSubmit)} className="space-y-8 max-w-4xl mx-auto">
+                    <div className="grid grid-cols-2 gap-6">
                         <div className="space-y-2">
-                            <label className="text-xs font-bold uppercase text-muted-foreground">Template Name</label>
-                            <input {...register('name')} className="w-full bg-background border border-border rounded-md px-3 py-2" />
+                            <label className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest">Template Name</label>
+                            <input {...register('name')} className="w-full bg-background border border-border rounded-lg px-4 py-2.5 outline-none focus:ring-2 focus:ring-primary/20 transition-all font-semibold" />
                         </div>
                         <div className="space-y-2">
-                            <label className="text-xs font-bold uppercase text-muted-foreground">Target CI Type</label>
-                            <select {...register('target_type')} className="w-full bg-background border border-border rounded-md px-3 py-2">
+                            <label className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest">Target CI Type</label>
+                            <select {...register('target_type')} className="w-full bg-background border border-border rounded-lg px-4 py-2.5 outline-none focus:ring-2 focus:ring-primary/20 transition-all">
                                 {ciTypes.map(t => <option key={t.name} value={t.name}>{t.name}</option>)}
                             </select>
                         </div>
                     </div>
 
                     <div className="space-y-4">
-                        <div className="flex items-center justify-between border-b border-border pb-2">
-                            <label className="text-xs font-bold uppercase text-muted-foreground">Default Values</label>
-                            <button type="button" onClick={() => append({ key: '', value: '' })} className="text-primary hover:bg-primary/10 p-1 rounded-md">
-                                <Plus size={18} />
+                        <div className="flex items-center justify-between border-b border-border pb-3">
+                            <div className="flex flex-col">
+                                <label className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest">Default Values</label>
+                                <span className="text-[10px] text-muted-foreground/60 tracking-tight">Populated when creating CIs from this template</span>
+                            </div>
+                            <button type="button" onClick={() => append({ key: '', value: '' })} className="bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground p-1.5 rounded-lg transition-all border border-primary/20 shadow-sm">
+                                <Plus size={20} />
                             </button>
                         </div>
-                        {fields.map((field, index) => (
-                            <div key={field.id} className="flex gap-3 items-center">
-                                <input {...register(`defaults.${index}.key`)} placeholder="Key" className="flex-1 bg-background border border-border rounded px-2 py-1 text-xs" />
-                                <input {...register(`defaults.${index}.value`)} placeholder="Value" className="flex-1 bg-background border border-border rounded px-2 py-1 text-xs" />
-                                <button type="button" onClick={() => remove(index)} className="text-destructive"><Trash2 size={16} /></button>
-                            </div>
-                        ))}
+                        <div className="space-y-3">
+                            {fields.map((field, index) => (
+                                <div key={field.id} className="grid grid-cols-12 gap-3 items-center p-3 border border-border/50 rounded-lg bg-card/30 group">
+                                    <div className="col-span-11 grid grid-cols-2 gap-3">
+                                        <input {...register(`defaults.${index}.key`)} placeholder="Key" className="bg-background border border-border/50 rounded px-2 py-1.5 text-xs outline-none focus:ring-1 focus:ring-primary/30" />
+                                        <input {...register(`defaults.${index}.value`)} placeholder="Value" className="bg-background border border-border/50 rounded px-2 py-1.5 text-xs outline-none focus:ring-1 focus:ring-primary/30" />
+                                    </div>
+                                    <div className="col-span-1 flex justify-end">
+                                        <button type="button" onClick={() => remove(index)} className="text-destructive opacity-30 group-hover:opacity-100 p-1 hover:bg-destructive/10 rounded transition-all">
+                                            <Trash2 size={16} />
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
                     </div>
 
-                    <div className="flex gap-3 pt-6">
-                        <button type="submit" className="flex-1 bg-primary text-primary-foreground font-bold py-3 rounded-lg flex items-center justify-center gap-2">
-                            <Save size={18} /> Create PR
+                    <div className="flex gap-4 pt-10 border-t border-border mt-auto">
+                        <button type="submit" className="flex-1 bg-primary text-primary-foreground font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 hover:opacity-90 shadow-xl shadow-primary/20 transition-all text-sm">
+                            <Save size={20} /> Create Change Proposal (PR)
                         </button>
-                        <button type="button" onClick={onCancel} className="px-6 border border-border rounded-lg">Cancel</button>
+                        <button type="button" onClick={onCancel} className="px-8 border border-border rounded-xl hover:bg-accent transition-colors font-semibold">Cancel</button>
                     </div>
                 </form>
             </div>
 
-            <div className="w-[400px] border-l border-border pl-6 flex flex-col h-full overflow-hidden">
-                <label className="text-xs font-bold uppercase text-muted-foreground mb-4 flex items-center gap-2 font-mono">
-                    <Code size={14} /> Preview
-                </label>
-                <div className="flex-1 bg-zinc-950 rounded-xl p-4 overflow-y-auto border border-white/5 font-mono text-[11px] text-zinc-300">
-                    <pre>{yamlPreview}</pre>
-                </div>
-            </div>
+            <PreviewPanel yaml={yamlPreview} diff={diff} plan={plan} />
         </div>
     );
 };
