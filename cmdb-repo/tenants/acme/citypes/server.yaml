@@ -1,0 +1,21 @@
+kind: CIType
+metadata:
+  name: server
+spec:
+  attributes:
+    hostname:
+      type: string
+      required: true
+    environment:
+      type: enum
+      enum_values:
+        - prod
+        - staging
+        - dev
+      required: true
+    owner_team:
+      type: string
+      required: true
+    health:
+      type: string
+      readonly: true

@@ -1,0 +1,27 @@
+{
+  "name": "cmdb-validator",
+  "version": "1.0.0",
+  "description": "Validator for CMDB GitOps repository",
+  "main": "scripts/validate.js",
+  "scripts": {
+    "validate": "node scripts/validate.js",
+    "format": "prettier --write \"**/*.{yaml,yml,json}\"",
+    "format:check": "prettier --check \"**/*.{yaml,yml,json}\""
+  },
+  "dependencies": {
+    "@hookform/resolvers": "^5.2.2",
+    "ajv": "^8.12.0",
+    "ajv-formats": "^2.1.1",
+    "axios": "^1.13.5",
+    "clsx": "^2.1.1",
+    "glob": "^10.3.10",
+    "js-yaml": "^4.1.1",
+    "lucide-react": "^0.574.0",
+    "react-hook-form": "^7.71.1",
+    "tailwind-merge": "^3.4.1",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "prettier": "^3.1.0"
+  }
+}

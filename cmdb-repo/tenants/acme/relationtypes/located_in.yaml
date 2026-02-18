@@ -1,0 +1,6 @@
+kind: RelationType
+metadata:
+  name: located_in
+spec:
+  source_type: server
+  target_type: location

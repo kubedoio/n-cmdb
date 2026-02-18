@@ -1,0 +1,10 @@
+kind: Template
+metadata:
+  name: prod-linux-server
+spec:
+  target_type: server
+  defaults:
+    environment: prod
+  required_relations:
+    - relation_type: located_in
+      target_type: location

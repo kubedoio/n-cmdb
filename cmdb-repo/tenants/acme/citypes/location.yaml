@@ -1,0 +1,9 @@
+kind: CIType
+metadata:
+  name: location
+spec:
+  attributes:
+    address:
+      type: string
+    region:
+      type: string

@@ -1,0 +1,73 @@
+-- CMDB Postgres Schema
+
+CREATE TABLE IF NOT EXISTS tenants (
+    id TEXT PRIMARY KEY,
+    metadata JSONB NOT NULL DEFAULT '{}',
+    spec JSONB NOT NULL DEFAULT '{}',
+    is_deprecated BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS citypes (
+    tenant_id TEXT REFERENCES tenants(id),
+    name TEXT NOT NULL,
+    metadata JSONB NOT NULL DEFAULT '{}',
+    spec JSONB NOT NULL DEFAULT '{}',
+    is_deprecated BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (tenant_id, name)
+);
+
+CREATE TABLE IF NOT EXISTS relation_types (
+    tenant_id TEXT REFERENCES tenants(id),
+    name TEXT NOT NULL,
+    metadata JSONB NOT NULL DEFAULT '{}',
+    spec JSONB NOT NULL DEFAULT '{}',
+    is_deprecated BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (tenant_id, name)
+);
+
+CREATE TABLE IF NOT EXISTS templates (
+    tenant_id TEXT REFERENCES tenants(id),
+    name TEXT NOT NULL,
+    metadata JSONB NOT NULL DEFAULT '{}',
+    spec JSONB NOT NULL DEFAULT '{}',
+    is_deprecated BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (tenant_id, name)
+);
+
+CREATE TABLE IF NOT EXISTS monitoring_sources (
+    tenant_id TEXT REFERENCES tenants(id),
+    name TEXT NOT NULL,
+    metadata JSONB NOT NULL DEFAULT '{}',
+    spec JSONB NOT NULL DEFAULT '{}',
+    is_deprecated BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (tenant_id, name)
+);
+
+CREATE TABLE IF NOT EXISTS monitoring_mappings (
+    tenant_id TEXT REFERENCES tenants(id),
+    name TEXT NOT NULL,
+    metadata JSONB NOT NULL DEFAULT '{}',
+    spec JSONB NOT NULL DEFAULT '{}',
+    is_deprecated BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (tenant_id, name)
+);
+
+CREATE TABLE IF NOT EXISTS reconcile_state (
+    tenant_id TEXT PRIMARY KEY REFERENCES tenants(id),
+    last_applied_sha TEXT,
+    last_reconcile_status TEXT,
+    last_error TEXT,
+    last_reconciled_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);

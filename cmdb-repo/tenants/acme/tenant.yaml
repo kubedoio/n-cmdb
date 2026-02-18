@@ -1,0 +1,6 @@
+kind: Tenant
+metadata:
+  name: Acme Corp
+spec:
+  description: Primary tenant for Acme Corporation
+  contact_email: admin@acme.com

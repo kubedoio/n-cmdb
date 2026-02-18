@@ -1,0 +1,43 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "kind": {
+      "const": "MonitoringMapping"
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": ["name"]
+    },
+    "spec": {
+      "type": "object",
+      "properties": {
+        "source": {
+          "type": "string"
+        },
+        "mapping_rules": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "source_metric": {
+                "type": "string"
+              },
+              "target_attribute": {
+                "type": "string"
+              }
+            },
+            "required": ["source_metric", "target_attribute"]
+          }
+        }
+      },
+      "required": ["source", "mapping_rules"]
+    }
+  },
+  "required": ["kind", "metadata", "spec"]
+}
