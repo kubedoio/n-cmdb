@@ -9,6 +9,7 @@ services:
     volumes:
       - ./designer-api:/app
       - /app/node_modules
+      - ./cmdb-repo:/cmdb-repo
     environment:
       - PORT=3001
       - GITHUB_TOKEN=${GITHUB_TOKEN:-}
@@ -57,6 +58,27 @@ services:
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/cmdb
       - CMDB_REPO_PATH=/repo
+    networks:
+      - cmdb-net
+
+  runtime-api:
+    build:
+      context: ./cmdb-api
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "3002:3002"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/cmdb
+    networks:
+      - cmdb-net
+
+  runtime-ui:
+    build:
+      context: ./cmdb-ui
+    ports:
+      - "3003:3003"
     networks:
       - cmdb-net
 

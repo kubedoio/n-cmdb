@@ -1,0 +1,1 @@
+{"id":"5afcc7c5-dfe2-462a-ae29-ab33ff2fc3ce","tenant_id":"acme","kind":"server","name":"web-01","properties":{"hostname":"web-01.acme.com","owner_team":"WebOps","environment":"prod"},"is_deleted":false,"created_at":"2026-02-18T22:38:03.094Z","updated_at":"2026-02-18T22:38:03.094Z"}
